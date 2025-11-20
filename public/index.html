@@ -2,47 +2,878 @@
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>API Especialistas en TCA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Nura – Especialistas</title>
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
+
+  <!-- Estilos principales -->
   <link rel="stylesheet" href="./style.css"/>
+
+  <style>
+    .hidden { display: none; }
+
+    /* Avatar backend: igual lógica que frontend */
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #f5f1ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-right: 12px;
+      flex: 0 0 auto;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .avatar-initial {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #5a2d5c;
+    }
+
+    /* ------- Modal look & feel mínimo (lo grueso está en style.css) ------- */
+    dialog {
+      border: none;
+      border-radius: 16px;
+      padding: 0;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    dialog::backdrop {
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(2px);
+    }
+    .dialog-body { padding: 24px; }
+    .dialog-title {
+      margin: 0 0 12px;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .form-row-sm input,
+    .form-row-sm .form-control {
+      width: 100%;
+      display: block;
+      margin: 6px 0;
+      padding: 10px 12px;
+      border: 1px solid #e6e6e6;
+      border-radius: 10px;
+    }
+    .dialog-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .btn.outline-plum {
+      background: #fff;
+      color: #5a2d5c;
+      border: 1px solid #5a2d5c;
+    }
+    .topbar-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    /* icon button */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #e9e9e9;
+      margin-right: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      transition: all .12s ease;
+    }
+    .icon-btn i { font-size: 16px; color: #5a2d5c; }
+    .icon-btn:hover { transform: translateY(-2px); background: #5a2d5c; }
+    .icon-btn:hover i { color: #fff; }
+  </style>
 </head>
 <body>
-<main>
-  <h1>API – Especialistas en Trastornos de la Conducta Alimentaria (TCA)</h1>
-  <p class="small">Esta API permite gestionar especialistas (psicólogas, nutricionistas, psiquiatras, etc.) de Argentina.</p>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <h1>Especialistas en TCA</h1>
+    </div>
 
-  <section>
-    <h2>Especialistas</h2>
-    <ul>
-  <li><a href="/api/especialistas">GET /api/especialistas</a> <span class="hint">lista</span></li>
-  <li><a href="/api/especialistas?q=ana">GET /api/especialistas?q=ana</a> <span class="hint">búsqueda por nombre</span></li>
-  <li><a href="/api/especialistas?modality=virtual&insurance=prepaga">GET /api/especialistas?modality=virtual&insurance=prepaga</a> <span class="hint">filtros</span></li>
-</ul>
+    <!-- Filtros -->
+    <form id="filters" autocomplete="off">
+      <input id="q" type="search" placeholder="Buscar por nombre…"/>
+
+      <!-- se llena dinámicamente desde /api/especialidades -->
+      <select id="type">
+        <option value="todas">Especialidad (todas)</option>
+      </select>
+
+      <select id="modality">
+        <option value="todas">Modalidad (todas)</option>
+        <option value="presencial">Presencial</option>
+        <option value="virtual">Virtual</option>
+        <option value="mixta">Mixta</option>
+      </select>
+
+      <select id="coverage">
+        <option value="todas">Cobertura (todas)</option>
+        <option value="prepaga">Prepaga</option>
+        <option value="obra social">Obra social</option>
+        <option value="privado">Privado</option>
+      </select>
+
+      <select id="city">
+        <option value="todas">Ciudad (todas)</option>
+      </select>
+
+      <button class="btn primary" type="submit">Buscar</button>
+      <button class="btn" type="button" id="clear">Limpiar</button>
+    </form>
+  </div>
+
+  <!-- Acciones de sesión -->
+  <div class="topbar-actions">
+    <button id="btnOpenLogin" class="btn plum">Login</button>
+    <button id="btnOpenRegister" class="btn outline-plum">Registrarse</button>
+    <button id="btnLogoutUser" class="btn" style="display:none">Logout</button>
+    <span id="sessionStatus" style="color:#fff;font-weight:600"></span>
+  </div>
+</header>
+
+<!-- MODAL LOGIN -->
+<dialog id="dlgLogin" class="dlg">
+  <form id="formLogin" class="dlg-body" novalidate>
+    <h3>Iniciar sesión</h3>
+
+    <label class="form-label" for="loginEmail">Email</label>
+    <input id="loginEmail" type="email" required class="input"/>
+
+    <label class="form-label mt" for="loginPassword">Contraseña</label>
+    <input id="loginPassword" type="password" required minlength="6" class="input"/>
+
+    <label class="remember">
+      <input id="rememberEmailLogin" type="checkbox"/>
+      <span>Recordar mi email</span>
+    </label>
+
+    <div id="loginError" class="error" style="display:none"></div>
+
+    <div class="dlg-actions">
+      <button type="button" id="btnCloseLogin" class="btn">Cancelar</button>
+      <button type="submit" class="btn plum">Entrar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- MODAL REGISTRO -->
+<dialog id="dlgRegister">
+  <form id="formRegister" method="dialog" class="dialog-body form-row-sm">
+    <h3 class="dialog-title">Crear cuenta</h3>
+
+    <label>Nombre</label>
+    <input id="regNombre" type="text" class="form-control" required/>
+
+    <label>Email</label>
+    <input id="regEmail" type="email" class="form-control" required/>
+
+    <label>Contraseña</label>
+    <input id="regPassword" type="password" class="form-control" required minlength="6"/>
+
+    <div id="regError" style="display:none;margin-top:4px;color:#c0392b"></div>
+
+    <div class="dialog-actions">
+      <button type="button" id="btnCloseRegister" class="btn outline-plum">Cancelar</button>
+      <button type="submit" class="btn plum">Registrarme</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- MODAL LOGOUT -->
+<dialog id="dlgLogoutConfirm">
+  <div class="dialog-body">
+    <h3 class="dialog-title">¿Cerrar sesión?</h3>
+    <p>¿Seguro que querés cerrar sesión?</p>
+    <div class="dialog-actions">
+      <button type="button" id="btnCancelLogout" class="btn outline-plum">Cancelar</button>
+      <button type="button" id="btnConfirmLogout" class="btn plum">Sí, cerrar sesión</button>
+    </div>
+  </div>
+</dialog>
+
+<main class="wrap">
+  <div class="list-head">
+    <h2>Listado</h2>
+    <span id="resultCount" class="muted">Resultados: –</span>
+  </div>
+
+  <!-- ABM: visible solo para admin -->
+  <section id="abm" class="hidden" style="margin:12px 0 18px;">
+    <h3>Nuevo / Editar especialista</h3>
+    <form id="abmForm" class="form-row">
+      <input class="input" id="f_id" type="hidden"/>
+      <input class="input" id="f_name" placeholder="Nombre y apellido" required/>
+
+      <!-- también se llena dinámicamente -->
+      <select class="input" id="f_type" required>
+        <option value="">Seleccionar especialidad</option>
+      </select>
+
+      <select class="input" id="f_modality" required>
+        <option value="">Seleccionar modalidad</option>
+        <option value="presencial">Presencial</option>
+        <option value="virtual">Virtual</option>
+        <option value="mixta">Mixta</option>
+      </select>
+
+      <select class="input" id="f_coverage" required>
+        <option value="">Seleccionar cobertura</option>
+        <option value="prepaga">Prepaga</option>
+        <option value="obra social">Obra social</option>
+        <option value="privado">Privado</option>
+      </select>
+
+      <select class="input" id="f_city" required>
+        <option value="">Seleccionar ciudad</option>
+        <option value="Bahía Blanca">Bahía Blanca</option>
+        <option value="Buenos Aires">Buenos Aires</option>
+        <option value="CABA">CABA</option>
+        <option value="Córdoba">Córdoba</option>
+        <option value="La Plata">La Plata</option>
+        <option value="Lanús">Lanús</option>
+        <option value="Mar del Plata">Mar del Plata</option>
+        <option value="Mendoza">Mendoza</option>
+        <option value="Morón">Morón</option>
+        <option value="Neuquén">Neuquén</option>
+        <option value="Posadas">Posadas</option>
+        <option value="Rosario">Rosario</option>
+        <option value="Salta">Salta</option>
+        <option value="San Isidro">San Isidro</option>
+        <option value="San Juan">San Juan</option>
+        <option value="San Miguel de Tucumán">San Miguel de Tucumán</option>
+      </select>
+
+      <input class="input" id="f_insurance" placeholder="Prepagas/OS separadas por coma"/>
+      <input class="input" id="f_email" placeholder="Email"/>
+      <input class="input" id="f_whatsapp" placeholder="WhatsApp (solo números)"/>
+      <input class="input" id="f_avatar" placeholder="URL Avatar (opcional)"/>
+      <textarea class="input" id="f_bio" placeholder="Descripción o bio breve"></textarea>
+
+      <div style="display:flex; gap:2px;">
+        <button class="btn-primary" type="submit">Guardar</button>
+        <button class="btn" type="button" id="cancelEdit">Cancelar</button>
+      </div>
+    </form>
   </section>
 
-  <section>
-    <h2>Especialidades</h2>
-   <ul>
-  <li><a href="/api/especialidades">GET /api/especialidades</a> <span class="hint">lista</span></li>
-  <li>GET /api/especialidades/:id</li>
-  <li>POST /api/especialidades <span class="hint">protegido</span></li>
-  <li>PUT /api/especialidades/:id <span class="hint">protegido</span></li>
-  <li>DELETE /api/especialidades/:id <span class="hint">protegido</span></li>
-</ul>
+  <section id="grid" class="grid"></section>
 
-  </section>
+  <!-- MODAL CONFIRMAR ELIMINAR -->
+  <dialog id="dlgConfirmDelete">
+    <div class="dialog-body">
+      <h3 class="dialog-title">Confirmar acción</h3>
+      <p>¿Seguro que querés eliminar este especialista?</p>
+      <div class="dialog-actions">
+        <button type="button" id="btnCancelDelete" class="btn outline-plum">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmDelete" class="btn plum">
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </dialog>
 
-  <section>
-    <h2>Autenticación</h2>
-    <pre>POST /api/auth/register
-POST /api/auth/login  → devuelve JWT
-GET  /api/auth/me     (Bearer &lt;token&gt;)</pre>
-  </section>
+  <!-- MODAL GUARDADO CORRECTO -->
+  <dialog id="dlgSaved">
+    <div class="dialog-body">
+      <h3 class="dialog-title">¡Guardado!</h3>
+      <p class="dialog-message">El especialista se guardó correctamente.</p>
+      <div class="dialog-actions">
+        <button type="button" id="btnCloseSaved" class="btn plum">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </dialog>
+
 </main>
 
-<footer>
-    Debbie Michanie • Tiara Albornos • Aplicaciones Híbridas • Docente: Jonathan Cruz • Comisión: DWM4AP-0225
+<footer class="wrap footer">
+  <small>© Nura · Proyecto académico</small>
 </footer>
+
+<script>
+  /* =================== ENDPOINTS =================== */
+  const BASE = "http://localhost:5000";
+  const API_ESPS      = BASE + "/api/especialistas";
+  const API_ESPSDS    = BASE + "/api/especialidades";
+  const AUTH_ADMIN    = BASE + "/api/auth/login";
+  const AUTH_LOGIN    = BASE + "/api/auth/login";
+  const AUTH_REGISTER = BASE + "/api/auth/register";
+
+  const ADMIN_EMAIL = "admin@nura.app".toLowerCase();
+
+  /* =================== STATE/DOM =================== */
+  const state = {
+    q: "",
+    type: "todas",
+    modality: "todas",
+    coverage: "todas",
+    city: "todas",
+    list: []
+  };
+
+  const dom = {
+    grid: document.getElementById("grid"),
+    q: document.getElementById("q"),
+    type: document.getElementById("type"),
+    modality: document.getElementById("modality"),
+    coverage: document.getElementById("coverage"),
+    city: document.getElementById("city"),
+    form: document.getElementById("filters"),
+    clear: document.getElementById("clear"),
+    resultCount: document.getElementById("resultCount"),
+
+    abm: document.getElementById("abm"),
+    abmForm: document.getElementById("abmForm"),
+    cancelEdit: document.getElementById("cancelEdit"),
+    f: {
+      id: document.getElementById("f_id"),
+      name: document.getElementById("f_name"),
+      type: document.getElementById("f_type"),
+      modality: document.getElementById("f_modality"),
+      coverage: document.getElementById("f_coverage"),
+      city: document.getElementById("f_city"),
+      insurance: document.getElementById("f_insurance"),
+      email: document.getElementById("f_email"),
+      whatsapp: document.getElementById("f_whatsapp"),
+      avatar: document.getElementById("f_avatar"),
+      bio: document.getElementById("f_bio")
+    },
+
+    btnOpenLogin: document.getElementById("btnOpenLogin"),
+    btnOpenRegister: document.getElementById("btnOpenRegister"),
+    btnLogoutUser: document.getElementById("btnLogoutUser"),
+    sessionStatus: document.getElementById("sessionStatus"),
+
+    dlgLogin: document.getElementById("dlgLogin"),
+    dlgRegister: document.getElementById("dlgRegister"),
+    formLogin: document.getElementById("formLogin"),
+    formRegister: document.getElementById("formRegister"),
+    loginEmail: document.getElementById("loginEmail"),
+    loginPassword: document.getElementById("loginPassword"),
+    loginError: document.getElementById("loginError"),
+    btnCloseLogin: document.getElementById("btnCloseLogin"),
+    regNombre: document.getElementById("regNombre"),
+    regEmail: document.getElementById("regEmail"),
+    regPassword: document.getElementById("regPassword"),
+    regError: document.getElementById("regError"),
+    btnCloseRegister: document.getElementById("btnCloseRegister"),
+    rememberEmailLogin: document.getElementById("rememberEmailLogin"),
+
+    dlgLogoutConfirm: document.getElementById("dlgLogoutConfirm"),
+    btnCancelLogout: document.getElementById("btnCancelLogout"),
+    btnConfirmLogout: document.getElementById("btnConfirmLogout"),
+
+    dlgConfirmDelete: document.getElementById("dlgConfirmDelete"),
+    btnCancelDelete: document.getElementById("btnCancelDelete"),
+    btnConfirmDelete: document.getElementById("btnConfirmDelete"),
+
+    dlgSaved: document.getElementById("dlgSaved"),
+    btnCloseSaved: document.getElementById("btnCloseSaved")
+  };
+
+  const qs = (p) => new URLSearchParams(p).toString();
+
+  /* =================== AUTH HELPERS =================== */
+  const AUTH_KEY = "auth";
+
+  function getAuth() {
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "{}"); }
+    catch { return {}; }
+  }
+  function setAuth(o)      { localStorage.setItem(AUTH_KEY, JSON.stringify(o || {})); }
+  function clearAuth()     { localStorage.removeItem(AUTH_KEY); }
+  function authHeader() {
+    const { token } = getAuth();
+    return token ? { Authorization: "Bearer " + token } : {};
+  }
+
+  function isLogged()        { return !!getAuth().token; }
+  function isAdmin()         { return getAuth().user?.rol === "admin"; }
+  function isClient()        { return getAuth().user?.rol === "client"; }
+  function canEditOrDelete() { return isAdmin() || isClient(); }
+
+  /* =================== UI & SESSION =================== */
+  function updateSessionUI() {
+    const { user } = getAuth();
+    const logged = !!user?.email;
+
+    dom.btnLogoutUser.style.display = logged ? "" : "none";
+    dom.sessionStatus.textContent = logged
+      ? `Sesión: ${user.email} (${user.rol})`
+      : "";
+
+    if (isAdmin()) dom.abm.classList.remove("hidden");
+    else           dom.abm.classList.add("hidden");
+
+    if (state.list.length) render(state.list);
+  }
+
+  /* =================== ESPECIALIDADES (dinámicas) =================== */
+  async function fetchEspecialidades() {
+    try {
+      const res = await fetch(API_ESPSDS);
+      const json = await res.json();
+      if (!json.ok) return;
+
+      const items = json.data || [];
+
+      // Filtro superior
+      dom.type.innerHTML =
+        '<option value="todas">Especialidad (todas)</option>' +
+        items
+          .map((esp) =>
+            `<option value="${esp.nombre}">${esp.nombre}</option>`
+          )
+          .join("");
+
+      // Select del ABM
+      if (dom.f?.type) {
+        dom.f.type.innerHTML =
+          '<option value="">Seleccionar especialidad</option>' +
+          items
+            .map((esp) =>
+              `<option value="${esp.nombre}">${esp.nombre}</option>`
+            )
+            .join("");
+      }
+    } catch (err) {
+      console.error("Error cargando especialidades", err);
+    }
+  }
+
+  /* =================== DATA ESPECIALISTAS =================== */
+  async function fetchEspecialistas() {
+    const query = {
+      q: state.q,
+      type: state.type,
+      modality: state.modality,
+      coverage: state.coverage,
+      city: state.city
+    };
+
+    const res = await fetch(`${API_ESPS}?${qs(query)}`);
+    const json = await res.json();
+    const list = json.data || [];
+
+    state.list = list;
+    render(list);
+    if (dom.city.options.length <= 1) fillCities(list);
+  }
+
+  function fillCities(list) {
+    const cities = Array.from(
+      new Set(list.map((x) => x.city).filter(Boolean))
+    ).sort();
+
+    dom.city.innerHTML =
+      '<option value="todas">Ciudad (todas)</option>' +
+      cities.map((c) => `<option>${c}</option>`).join("");
+  }
+
+  /* =================== RENDER CARDS =================== */
+  function card(e) {
+    const chips = [e.type, e.modality, e.coverage, (e.insurance || [])[0] || ""]
+      .filter(Boolean)
+      .map((c) => `<span class="chip">${c}</span>`)
+      .join("");
+
+    const mail = e.contact?.email
+      ? `
+      <a class="icon-btn" target="_blank"
+         href="https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(e.contact.email)}"
+         title="Enviar email a ${e.name}">
+        <i class="fa-solid fa-envelope email-icon"></i>
+      </a>`
+      : "";
+
+    const wa = e.contact?.whatsapp
+      ? `
+      <a class="icon-btn" target="_blank"
+         href="https://wa.me/${String(e.contact.whatsapp).replace(/\D/g, "")}"
+         title="Chatear por WhatsApp con ${e.name}">
+        <i class="fa-brands fa-whatsapp whatsapp-icon"></i>
+      </a>`
+      : "";
+
+    const bio = e.bio || "Profesional especializado en acompañamiento integral en TCA.";
+
+    // Avatar: si hay ruta en la BD, se usa; si no, se muestra inicial
+    // IMPORTANTE: si en tu seed guardaste rutas como "/Fotos/..." se va a convertir en BASE + "/Fotos/..."
+    const avatarSrc = e.avatar && e.avatar.trim() ? (BASE + e.avatar) : "";
+    const avatarInitial = (e.name || "?").trim().charAt(0).toUpperCase();
+
+    const avatarHTML = avatarSrc
+      ? `<img class="avatar-img" src="${avatarSrc}" alt="${e.name || ""}"/>`
+      : `<div class="avatar-initial">${avatarInitial}</div>`;
+
+    const actionBtns = canEditOrDelete()
+      ? `<div class="small-actions">
+           <button class="btn-edit" data-edit="${e._id}">🖊 Editar</button>
+           <button class="btn-delete" data-del="${e._id}">🗑 Borrar</button>
+         </div>`
+      : "";
+
+    const location =
+      e.city && e.province && e.city !== e.province
+        ? `${e.city}, ${e.province}`
+        : (e.city || e.province || "");
+
+    return `
+      <article class="card">
+        <div class="card-head">
+          <div class="avatar">
+            ${avatarHTML}
+          </div>
+          <div>
+            <h3>${e.name}</h3>
+            <div class="chips">${chips}</div>
+            <p class="muted">${location}</p>
+          </div>
+        </div>
+
+        <p class="bio">${bio}</p>
+
+        <div class="actions">
+          ${mail}${wa}
+          <button class="btn connect block">Conectar</button>
+        </div>
+
+        ${actionBtns}
+      </article>`;
+  }
+
+  function render(list) {
+    dom.resultCount.textContent = `Resultados: ${list.length}`;
+    if (!list.length) {
+      dom.grid.innerHTML = `
+        <div class="no-results">
+          <p>No encontramos el profesional que buscas.<br/>
+          Probá ajustar los filtros o revisar otra ciudad.</p>
+        </div>`;
+      return;
+    }
+    dom.grid.innerHTML = list.map(card).join("");
+  }
+
+  /* =================== MODAL DE CONFIRMACIÓN PARA BORRAR =================== */
+  let pendingDeleteId = null;
+
+  async function handleDeleteWithModal(id) {
+    if (!canEditOrDelete()) return alert("No tenés permiso para borrar");
+    pendingDeleteId = id;
+    dom.dlgConfirmDelete.showModal();
+  }
+
+  dom.btnCancelDelete.addEventListener("click", () => {
+    dom.dlgConfirmDelete.close();
+    pendingDeleteId = null;
+  });
+
+  dom.btnConfirmDelete.addEventListener("click", async () => {
+    if (!pendingDeleteId) return;
+    try {
+      const res = await fetch(`${API_ESPS}/${pendingDeleteId}`, {
+        method: "DELETE",
+        headers: { ...authHeader() },
+      });
+      const json = await res.json();
+      if (json.ok) fetchEspecialistas();
+      else alert(json.message || "No se pudo eliminar");
+    } catch (err) {
+      alert("Error al eliminar");
+    } finally {
+      dom.dlgConfirmDelete.close();
+      pendingDeleteId = null;
+    }
+  });
+
+  /* =================== MODAL GUARDADO =================== */
+  function showSavedDialog(message) {
+    const p = dom.dlgSaved.querySelector(".dialog-message");
+    if (message) p.textContent = message;
+    dom.dlgSaved.showModal();
+  }
+  dom.btnCloseSaved.addEventListener("click", () => dom.dlgSaved.close());
+
+  /* =================== FILTROS =================== */
+  dom.form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    state.q        = dom.q.value.trim();
+    state.type     = dom.type.value;
+    state.modality = dom.modality.value;
+    state.coverage = dom.coverage.value;
+    state.city     = dom.city.value;
+    fetchEspecialistas();
+  });
+
+  dom.clear.addEventListener("click", () => {
+    dom.q.value = "";
+    dom.type.value = "todas";
+    dom.modality.value = "todas";
+    dom.coverage.value = "todas";
+    dom.city.value = "todas";
+    state.q = "";
+    state.type = "todas";
+    state.modality = "todas";
+    state.coverage = "todas";
+    state.city = "todas";
+    fetchEspecialistas();
+  });
+
+  /* =================== LOGIN / REGISTRO =================== */
+
+  dom.btnOpenLogin.addEventListener("click", () => dom.dlgLogin.showModal());
+  dom.btnCloseLogin.addEventListener("click", () => dom.dlgLogin.close());
+  dom.btnOpenRegister.addEventListener("click", () => dom.dlgRegister.showModal());
+  dom.btnCloseRegister.addEventListener("click", () => dom.dlgRegister.close());
+
+  (function initRememberedLoginEmail() {
+    const remember = localStorage.getItem("rememberEmailLogin") === "1";
+    const saved = localStorage.getItem("savedLoginEmail") || "";
+    if (remember && saved) {
+      dom.rememberEmailLogin.checked = true;
+      dom.loginEmail.value = saved;
+    }
+  })();
+
+  dom.formRegister.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    dom.regError.style.display = "none";
+    dom.regError.textContent = "";
+    try {
+      const body = {
+        nombre: dom.regNombre.value.trim(),
+        email: dom.regEmail.value.trim().toLowerCase(),
+        password: dom.regPassword.value
+      };
+      const res = await fetch(AUTH_REGISTER, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok)
+        throw new Error(data.message || "No se pudo registrar");
+      setAuth({ token: data.token, user: data.user });
+      dom.dlgRegister.close();
+      updateSessionUI();
+    } catch (ex) {
+      dom.regError.textContent = ex.message;
+      dom.regError.style.display = "";
+    }
+  });
+
+  dom.formLogin.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    dom.loginError.style.display = "none";
+    dom.loginError.textContent = "";
+    const email = dom.loginEmail.value.trim().toLowerCase();
+    const password = dom.loginPassword.value;
+    try {
+      const endpoint = email === ADMIN_EMAIL ? AUTH_ADMIN : AUTH_LOGIN;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        if (email === ADMIN_EMAIL && endpoint !== AUTH_ADMIN) {
+          const r2 = await fetch(AUTH_ADMIN, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+          });
+          const d2 = await r2.json();
+          if (!r2.ok || !d2.ok)
+            throw new Error(d2.message || "No se pudo iniciar sesión");
+          setAuth({ token: d2.token, user: { email, rol: "admin" } });
+        } else {
+          throw new Error(data.message || "No se pudo iniciar sesión");
+        }
+      } else {
+        const user =
+          data.user || { email, rol: email === ADMIN_EMAIL ? "admin" : "user" };
+        setAuth({ token: data.token, user });
+      }
+      if (dom.rememberEmailLogin.checked) {
+        localStorage.setItem("rememberEmailLogin", "1");
+        localStorage.setItem("savedLoginEmail", email);
+      } else {
+        localStorage.removeItem("rememberEmailLogin");
+        localStorage.removeItem("savedLoginEmail");
+      }
+      dom.dlgLogin.close();
+      updateSessionUI();
+    } catch (ex) {
+      dom.loginError.textContent = ex.message;
+      dom.loginError.style.display = "";
+    }
+  });
+
+
+  /* =================== LOGOUT (MODAL) =================== */
+
+  dom.btnLogoutUser.addEventListener("click", () => {
+    const { user } = getAuth();
+    if (!user?.email) return;
+    dom.dlgLogoutConfirm.showModal();
+  });
+
+  dom.btnCancelLogout.addEventListener("click", () => {
+    dom.dlgLogoutConfirm.close();
+  });
+
+  dom.btnConfirmLogout.addEventListener("click", () => {
+    clearAuth();
+    dom.dlgLogoutConfirm.close();
+    updateSessionUI();
+  });
+
+  /* =================== ABM =================== */
+
+  const CITY_PROVINCE = {
+    "Bahía Blanca": "Buenos Aires",
+    "Buenos Aires": "Buenos Aires",
+    "CABA": "CABA",
+    "Córdoba": "Córdoba",
+    "La Plata": "Buenos Aires",
+    "Lanús": "Buenos Aires",
+    "Mar del Plata": "Buenos Aires",
+    "Mendoza": "Mendoza",
+    "Morón": "Buenos Aires",
+    "Neuquén": "Neuquén",
+    "Posadas": "Misiones",
+    "Rosario": "Santa Fe",
+    "Salta": "Salta",
+    "San Isidro": "Buenos Aires",
+    "San Juan": "San Juan",
+    "San Miguel de Tucumán": "Tucumán"
+  };
+
+  dom.abmForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!isLogged()) return alert("Iniciá sesión");
+
+    const id = dom.f.id.value.trim();
+    if (!id && !isAdmin()) return alert("Solo el admin puede crear");
+    if (id && !(isAdmin() || isClient()))
+      return alert("Solo admin/cliente pueden editar");
+
+    const city = dom.f.city.value;
+    const province = CITY_PROVINCE[city] || "";
+
+    const payload = {
+      name: dom.f.name.value,
+      type: dom.f.type.value,
+      modality: dom.f.modality.value,
+      coverage: dom.f.coverage.value,
+      city,
+      province,
+      insurance: dom.f.insurance.value
+        ? dom.f.insurance.value.split(",").map((s) => s.trim())
+        : [],
+      bio: dom.f.bio.value,
+      contact: {
+        email: dom.f.email.value,
+        whatsapp: dom.f.whatsapp.value
+      },
+      avatar: dom.f.avatar.value
+    };
+
+    const url = id ? `${API_ESPS}/${id}` : API_ESPS;
+    const method = id ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader()
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const json = await res.json();
+    if (json.ok) {
+      showSavedDialog("El especialista se guardó correctamente.");
+      dom.abmForm.reset();
+      dom.f.id.value = "";
+      if (!isAdmin()) dom.abm.classList.add("hidden");
+      fetchEspecialistas();
+    } else {
+      alert(json.message || "Error");
+    }
+  });
+
+  dom.cancelEdit.onclick = () => {
+    dom.abmForm.reset();
+    dom.f.id.value = "";
+    if (!isAdmin()) dom.abm.classList.add("hidden");
+  };
+
+  dom.grid.addEventListener("click", async (e) => {
+    const editId = e.target.getAttribute("data-edit");
+    const delId  = e.target.getAttribute("data-del");
+
+    if (editId) {
+      if (!canEditOrDelete()) return alert("No tenés permiso para editar");
+      const d = state.list.find((x) => x._id === editId);
+      if (!d) return;
+
+      dom.f.id.value = d._id || "";
+      dom.f.name.value = d.name || "";
+      dom.f.type.value = d.type || "";
+      dom.f.modality.value = d.modality || "";
+      dom.f.coverage.value = d.coverage || "";
+      dom.f.city.value = d.city || "";
+      dom.f.insurance.value = (d.insurance || []).join(", ");
+      dom.f.email.value = d.contact?.email || "";
+      dom.f.whatsapp.value = d.contact?.whatsapp || "";
+      dom.f.avatar.value = d.avatar || "";
+      dom.f.bio.value = d.bio || "";
+
+      dom.abm.classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    if (delId) {
+      await handleDeleteWithModal(delId);
+    }
+  });
+
+  /* =================== INIT =================== */
+  updateSessionUI();
+  fetchEspecialidades();
+  fetchEspecialistas();
+</script>
 </body>
 </html>
-

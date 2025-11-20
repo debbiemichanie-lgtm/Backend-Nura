@@ -1,16 +1,49 @@
+// API/middlewares/auth.js
 import jwt from 'jsonwebtoken';
-import ApiError from '../utils/ApiError.js';
 
-export default function auth(req, _res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return next(new ApiError(401, 'Token requerido'));
+const JWT_SECRET  = process.env.JWT_SECRET  || 'cambia-esto';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
 
+// Helper: firmar token con campos consistentes
+export function signToken({ uid, email, rol = 'client', extra = {} }) {
+  const payload = { uid, email, rol, ...extra }; // SIEMPRE 'rol'
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+}
+
+// Login rápido solo para admin .env (compatibilidad con tu flujo actual)
+export function adminLogin(req, res) {
+  const { email, password } = req.body || {};
+  if (email !== process.env.ADMIN_EMAIL || password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ ok: false, message: 'Credenciales inválidas' });
+  }
+  // IMPORTANTE: firmar con 'rol' (no 'role')
+  const token = signToken({ email, rol: 'admin' });
+  res.json({ ok: true, token, user: { email, rol: 'admin' } });
+}
+
+// Autenticación: requiere token (user o admin)
+export function requireAuth(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return res.status(401).json({ ok: false, message: 'Token requerido' });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id, email: decoded.email, rol: decoded.rol };
+    const payload = jwt.verify(token, JWT_SECRET);
+
+    // Normalización por compatibilidad: si viene 'role', lo mapeamos a 'rol'
+    if (payload.role && !payload.rol) payload.rol = payload.role;
+
+    req.user = payload; // { uid?, email, rol }
     next();
   } catch {
-    next(new ApiError(401, 'Token inválido o expirado'));
+    return res.status(401).json({ ok: false, message: 'Token inválido/expirado' });
   }
 }
+
+// Autorización: solo admin y cliente
+export function requireAdmin(req, res, next) {
+  if (!req.user || !["admin", "client"].includes(req.user.rol)) {
+    return res.status(403).json({ ok: false, message: "Solo admin o cliente autorizado" });
+  }
+  next();
+}
+

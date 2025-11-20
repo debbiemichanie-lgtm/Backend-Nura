@@ -1,58 +1,105 @@
-import Especialista from '../models/EspecialistaModel.js';
-import ApiError from '../utils/ApiError.js';
+// API/controllers/EspecialistaController.js
+import {
+  listarEspecialistas,
+  obtenerEspecialistaPorId,
+  crearEspecialista as svcCrear,
+  actualizarEspecialista as svcActualizar,
+  eliminarEspecialista as svcEliminar,
+} from '../services/EspecialistaService.js';
 
-// GET /api/specialists  (lista + filtros + búsqueda)
-export const list = async (req, res, next) => {
+// Helpers de rol (respetando tu lógica previa)
+function isAdmin(user){ return user?.rol === 'admin'; }
+function isClient(user){ return user?.rol === 'client'; }
+
+/**
+ * GET /api/especialistas
+ * Mantengo tus filtros y paginación originales
+ */
+export async function getEspecialistas(req, res, next) {
   try {
-    const { modality, insurance, specialty, city, province, q } = req.query;
+    const { type, modality, city, q, coverage, page = 1, limit = 60 } = req.query;
 
     const filter = {};
-    if (modality) filter.modality = modality;
-    if (insurance) filter.insurance = insurance;
-    if (specialty) filter.specialties = { $in: [specialty] };
-    if (city) filter.city = new RegExp(`^${city}$`, 'i');
-    if (province) filter.province = new RegExp(`^${province}$`, 'i');
-    if (q) filter.$text = { $search: q };
+    if (type && type !== 'todas')         filter.type = type;
+    if (modality && modality !== 'todas') filter.modality = modality;
+    if (coverage && coverage !== 'todas') filter.coverage = coverage;
+    if (city && city !== 'todas')         filter.city = new RegExp(`^${city}$`, 'i');
+    if (q && q.trim())                    filter.$text = { $search: q.trim() };
 
-    const docs = await Especialista.find(filter).sort({ createdAt: -1 });
-    res.json({ ok: true, total: docs.length, data: docs });
-  } catch (e) { next(e); }
-};
+    const skip = (Number(page) - 1) * Number(limit);
 
-// GET /api/specialists/:id
-export const getById = async (req, res, next) => {
-  try {
-    const doc = await Especialista.findById(req.params.id);
-    if (!doc) throw new ApiError(404, 'Especialista no encontrado');
-    res.json({ ok: true, data: doc });
-  } catch (e) { next(e); }
-};
+    
+    const Especialista = (await import('../models/EspecialistaModel.js')).default;
 
-// POST /api/specialists  (protegido)
-export const create = async (req, res, next) => {
-  try {
-    const payload = { ...req.body, createdBy: req.user.id };
-    const doc = await Especialista.create(payload);
-    res.status(201).json({ ok: true, data: doc });
-  } catch (e) { next(e); }
-};
+    const [items, total] = await Promise.all([
+      Especialista.find(filter).sort({ name: 1 }).skip(skip).limit(Number(limit)),
+      Especialista.countDocuments(filter),
+    ]);
 
-// PUT /api/specialists/:id  (protegido)
-export const update = async (req, res, next) => {
-  try {
-    const doc = await Especialista.findByIdAndUpdate(req.params.id, req.body, {
-      new: true, runValidators: true
+    res.json({
+      ok: true,
+      data: items,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
     });
-    if (!doc) throw new ApiError(404, 'Especialista no encontrado');
-    res.json({ ok: true, data: doc });
-  } catch (e) { next(e); }
-};
+  } catch (err) { next(err); }
+}
 
-// DELETE /api/specialists/:id  (protegido)
-export const remove = async (req, res, next) => {
+/**
+ * GET /api/especialistas/:id
+ */
+export async function getEspecialistaById(req, res, next) {
   try {
-    const doc = await Especialista.findByIdAndDelete(req.params.id);
-    if (!doc) throw new ApiError(404, 'Especialista no encontrado');
+    const { id } = req.params;
+    const doc = await obtenerEspecialistaPorId(id);
+    if (!doc) return res.status(404).json({ ok:false, message:'No encontrado' });
+    res.json({ ok:true, data: doc });
+  } catch (err) { next(err); }
+}
+
+/**
+ * POST /api/especialistas
+ */
+export async function createEspecialista(req, res, next) {
+  try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json({ ok:false, message:'Solo admin puede crear' });
+    }
+    const doc = await svcCrear(req.body);
+    res.status(201).json({ ok: true, data: doc });
+  } catch (err) { next(err); }
+}
+
+/**
+ * PUT /api/especialistas/:id
+ */
+export async function updateEspecialista(req, res, next) {
+  try {
+    if (!(isAdmin(req.user) || isClient(req.user))) {
+      return res.status(403).json({ ok:false, message:'Solo admin/cliente puede editar' });
+    }
+    const { id } = req.params;
+    const doc = await svcActualizar(id, req.body);
+    if (!doc) return res.status(404).json({ ok: false, message: 'No encontrado' });
+    res.json({ ok: true, data: doc });
+  } catch (err) { next(err); }
+}
+
+/**
+ * DELETE /api/especialistas/:id
+ */
+export async function deleteEspecialista(req, res, next) {
+  try {
+    if (!(isAdmin(req.user) || isClient(req.user))) {
+      return res.status(403).json({ ok:false, message:'Solo admin/cliente puede borrar' });
+    }
+    const { id } = req.params;
+    const doc = await svcEliminar(id);
+    if (!doc) return res.status(404).json({ ok: false, message: 'No encontrado' });
     res.json({ ok: true, message: 'Eliminado' });
-  } catch (e) { next(e); }
-};
+  } catch (err) { next(err); }
+}

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Test API – Especialistas (Nura)</title>
+
+<style>
+body {
+    font-family: Inter, sans-serif;
+    background: #f6f9fc;
+    margin: 0;
+    padding: 40px;
+}
+
+h1 { color:#633266; }
+h2 { margin-top:30px; color:#4a1454; }
+
+.box {
+    background:#fff;
+    padding:24px;
+    border-radius:16px;
+    box-shadow:0 4px 20px rgba(0,0,0,.08);
+    margin-bottom:30px;
+    max-width:950px;
+}
+
+input, select, textarea {
+    width:100%;
+    padding:10px 12px;
+    margin:6px 0 14px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:15px;
+    outline-color:#35b9b5;
+}
+
+.btn {
+    padding:8px 22px;
+    border-radius:999px;
+    border:2px solid #633266;
+    background:#fff;
+    color:#633266;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
+    margin-right:6px;
+}
+.btn:hover { background:#633266; color:#fff; }
+
+pre {
+    background:#f2f2f6;
+    padding:16px;
+    border-radius:12px;
+    max-height:260px;
+    overflow:auto;
+    font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<h1>Test API – ABM Especialistas (Nura)</h1>
+
+<div class="box">
+    <h2>Login Admin</h2>
+    <input id="email" placeholder="Email admin" />
+    <input id="password" placeholder="Contraseña" type="password" />
+    <button class="btn" onclick="login()">Ingresar</button>
+</div>
+
+<div class="box">
+<h2>Crear / Editar Especialista</h2>
+
+<input id="esp_id" placeholder="ID si vas a editar" />
+<input id="name" placeholder="Nombre y apellido" />
+
+<select id="type">
+    <option value="">Especialidad (dinámica)</option>
+</select>
+
+<select id="modality">
+    <option value="presencial">Presencial</option>
+    <option value="virtual">Virtual</option>
+    <option value="mixta">Mixta</option>
+</select>
+
+<select id="coverage">
+    <option value="prepaga">Prepaga</option>
+    <option value="obra social">Obra Social</option>
+    <option value="privado">Privado</option>
+</select>
+
+<select id="city">
+    <option value="CABA">CABA</option>
+    <option value="Buenos Aires">Buenos Aires</option>
+    <option value="La Plata">La Plata</option>
+    <option value="Bahía Blanca">Bahía Blanca</option>
+    <option value="Córdoba">Córdoba</option>
+    <option value="Rosario">Rosario</option>
+    <option value="Mendoza">Mendoza</option>
+    <option value="Neuquén">Neuquén</option>
+    <option value="Mar del Plata">Mar del Plata</option>
+    <option value="Lanús">Lanús</option>
+    <option value="Morón">Morón</option>
+    <option value="San Isidro">San Isidro</option>
+    <option value="San Miguel de Tucumán">San Miguel de Tucumán</option>
+</select>
+
+<input id="email2" placeholder="Email del profesional" />
+<input id="whatsapp" placeholder="WhatsApp" />
+<input id="avatar" placeholder="URL del avatar" />
+<textarea id="bio" placeholder="Descripción o bio"></textarea>
+
+<button class="btn" onclick="saveEspecialista()">Guardar</button>
+</div>
+
+<div class="box">
+<h2>Listar Especialistas</h2>
+<button class="btn" onclick="fetchEspecialistas()">Cargar lista</button>
+<pre id="list">—</pre>
+</div>
+
+<div class="box">
+<h2>Borrar especialista</h2>
+<input id="delID" placeholder="ID a borrar" />
+<button class="btn" onclick="deleteEsp()">Eliminar</button>
+</div>
+
+<div class="box">
+<h2>Respuesta de la API</h2>
+<pre id="out">—</pre>
+</div>
+
+<script>
+let TOKEN = "";
+
+// mostrar salida API
+function show(o){
+    document.getElementById("out").textContent =
+      JSON.stringify(o,null,2);
+}
+
+// login
+async function login(){
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const res = await fetch("/api/auth/admin/login",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ email,password })
+    });
+
+    const data = await res.json();
+    TOKEN = data.token;
+    show(data);
+    alert("Login correcto");
+}
+
+// cargar lista de especialidades
+async function loadTypes(){
+    const res = await fetch("/api/especialidades");
+    const data = await res.json();
+    const list = data.data || data.especialidades || [];
+
+    const sel = document.getElementById("type");
+    sel.innerHTML = '<option value="">Elegir especialidad</option>' +
+      list.map(e=>`<option value="${e.name||e.nombre}">${e.name||e.nombre}</option>`).join("");
+}
+
+loadTypes();
+
+// guardar
+async function saveEspecialista(){
+    const id = document.getElementById("esp_id").value.trim();
+    const payload = {
+        name: document.getElementById("name").value.trim(),
+        type: document.getElementById("type").value,
+        modality: document.getElementById("modality").value,
+        coverage: document.getElementById("coverage").value,
+        city: document.getElementById("city").value,
+        avatar: document.getElementById("avatar").value,
+        bio: document.getElementById("bio").value,
+        contact:{
+            email: document.getElementById("email2").value,
+            whatsapp: document.getElementById("whatsapp").value
+        }
+    };
+
+    const url = id ? `/api/especialistas/${id}` : "/api/especialistas";
+    const method = id ? "PUT" : "POST";
+
+    const res = await fetch(url,{
+        method,
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer "+TOKEN
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    show(data);
+    alert("Guardado exitosamente");
+}
+
+// listar
+async function fetchEspecialistas(){
+    const res = await fetch("/api/especialistas");
+    const data = await res.json();
+    document.getElementById("list").textContent =
+      JSON.stringify(data,null,2);
+}
+
+// borrar
+async function deleteEsp(){
+    const id = document.getElementById("delID").value.trim();
+    const res = await fetch(`/api/especialistas/${id}`,{
+        method:"DELETE",
+        headers:{ "Authorization":"Bearer "+TOKEN }
+    });
+    show(await res.json());
+}
+</script>
+
+</body>
+</html>

@@ -1,3 +1,4 @@
+// index.js (raíz)
 import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
@@ -6,43 +7,56 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+
 import indexRouter from './routes/index.js';
 import usuarioRouter from './routes/UsuarioRouter.js';
 import especialistaRouter from './routes/EspecialistaRouter.js';
 import especialidadRouter from './routes/EspecialidadRouter.js';
 import errorHandler from './middlewares/errorHandler.js';
+import authRouter from "./routes/AuthRouter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 1) crear la app ANTES de usarla
+// 1) crear la app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
-// lindo formato de JSON en desarrollo
-if (process.env.NODE_ENV !== 'production') {
-  app.set('json spaces', 2);
-}
+// formato de JSON legible en dev
+if (process.env.NODE_ENV !== 'production') app.set('json spaces', 2);
 
 // 2) middlewares base
-app.use(cors());
+
+
+app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));
+
 app.use(morgan('dev'));
 app.use(express.json());
+
 app.use(express.static(path.join(__dirname, 'public')));
+app.use("/api/especialidades", especialidadRouter);
+
+// healthcheck
+app.get('/health', (_req, res) => res.json({ ok: true, status: 'up' }));
 
 // 3) rutas
-app.use('/', indexRouter);
-app.use('/api/auth', usuarioRouter);
-app.use('/api/specialists', especialistaRouter);
-app.use('/api/especialistas', especialistaRouter);   // alias en castellano (opcional)
-app.use('/api/especialidades', especialidadRouter);
+app.use("/api/auth", authRouter);                  // login-env, etc.
+app.use("/api/usuarios", usuarioRouter);           // ← AQUÍ va UsuarioRouter
+app.use("/api/especialistas", especialistaRouter);
+app.use("/api/especialidades", especialidadRouter);
+app.use("/", indexRouter);
+
 
 // 4) manejador de errores
 app.use(errorHandler);
 
-// 5) DB + arranque del server
-const uri = process.env.URI_DB?.trim();
+// 5) DB + server
+const uri = (process.env.URI_DB || process.env.MONGO_URI || '').trim();
+if (!uri) {
+  console.error('❌ Falta URI_DB en .env');
+  process.exit(1);
+}
+
 mongoose.connect(uri)
   .then(() => {
     console.log('✅ MongoDB conectado');
@@ -50,6 +64,5 @@ mongoose.connect(uri)
   })
   .catch(err => {
     console.error('❌ Error conectando a MongoDB:', err.message);
-    // opcional: arrancar igual para debug de rutas estáticas
-    app.listen(PORT, () => console.log(`🚀 Server en http://localhost:${PORT} (sin DB)`));
+    process.exit(1);
   });

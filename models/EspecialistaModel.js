@@ -1,31 +1,72 @@
-import mongoose from 'mongoose';
+// api/models/EspecialistaModel.js
+import mongoose from "mongoose";
 
-const EspecialistaSchema = new mongoose.Schema(
+const { Schema } = mongoose;
+
+const EspecialistaSchema = new Schema(
   {
-    nombre: { type: String, required: true, trim: true, index: true },
-    profesion: {
+    name: {
       type: String,
-      enum: ['psicologa', 'nutricionista', 'psiquiatra', 'ginecologa', 'medico_clinico', 'otro'],
-      required: true
+      required: true,
+      trim: true,
     },
-    modality: { type: String, enum: ['presencial', 'virtual', 'mixta'], required: true },
-    insurance: { type: String, enum: ['prepaga', 'particular', 'ambas'], required: true },
-    specialties: [{ type: String, trim: true }], // p.ej. anorexia, bulimia, TCA, atracón
-    city: { type: String, required: true, trim: true },
-    province: { type: String, required: true, trim: true },
-    phone: { type: String, trim: true },
-    email: { type: String, trim: true, lowercase: true },
-    social: {
-      instagram: { type: String, trim: true },
-      web: { type: String, trim: true }
+
+    // Antes: enum fijo (Psicóloga, Psiquiatra, etc.)
+    // Ahora: string libre, pero validamos por nombre de Especialidad existente desde el frontend / ABM.
+    type: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    rating: { type: Number, min: 0, max: 5, default: 0 },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
+
+    modality: {
+      type: String,
+      enum: ["presencial", "virtual", "mixta"],
+      required: true,
+    },
+
+    coverage: {
+      type: String,
+      enum: ["prepaga", "obra social", "privado"],
+      required: true,
+    },
+
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    province: {
+      type: String,
+      trim: true,
+    },
+
+    insurance: {
+      type: [String],
+      default: [],
+    },
+
+    bio: {
+      type: String,
+      trim: true,
+    },
+
+    contact: {
+      email: { type: String, trim: true },
+      whatsapp: { type: String, trim: true },
+      phone: { type: String, trim: true },
+      website: { type: String, trim: true },
+    },
+
+    avatar: {
+      type: String,
+      trim: true,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-// Búsqueda por nombre con índice de texto simple
-EspecialistaSchema.index({ nombre: 'text' });
-
-export default mongoose.model('Especialista', EspecialistaSchema);
+export default mongoose.model("Especialista", EspecialistaSchema);

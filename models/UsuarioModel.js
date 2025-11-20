@@ -1,12 +1,13 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const UsuarioSchema = new mongoose.Schema(
   {
-    nombre: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6 },
-    rol: { type: String, enum: ['admin', 'user'], default: 'user' }
+    nombre:  { type: String, required: true, trim: true },
+    email:   { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password:{ type: String, required: true, minlength: 6 },
+    // ahora con 'client'
+    rol:     { type: String, enum: ['admin', 'client', 'user'], default: 'user' }
   },
   { timestamps: true }
 );

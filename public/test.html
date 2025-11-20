@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Test API – Especialidades (Nura)</title>
+<style>
+    body {
+        font-family: Inter, sans-serif;
+        background: #f6f9fc;
+        margin: 0;
+        padding: 40px;
+        color: #333;
+    }
+    h1 { color: #633266; }
+    h2 { margin-top: 40px; color:#4a1454; }
+
+    .box {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,.08);
+        margin-bottom: 30px;
+        max-width: 900px;
+    }
+
+    input, textarea, select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        margin: 6px 0 14px;
+        font-size: 15px;
+        outline-color: #35b9b5;
+    }
+
+    .btn {
+        padding: 8px 22px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 2px solid #633266;
+        background: #fff;
+        color: #633266;
+        margin-right: 8px;
+        transition: .2s;
+    }
+    .btn:hover { background:#633266; color:#fff; }
+
+    pre {
+        background: #f2f2f6;
+        padding: 16px;
+        border-radius: 12px;
+        max-height: 260px;
+        overflow: auto;
+        font-size: 13px;
+    }
+</style>
+</head>
+<body>
+
+<h1>Test API – ABM Especialidades (Nura)</h1>
+
+<div class="box">
+    <h2>Login Admin</h2>
+    <input id="email" placeholder="Email (admin@nura.app)" />
+    <input id="password" placeholder="Contraseña" type="password" />
+    <button class="btn" onclick="login()">Ingresar</button>
+</div>
+
+<div class="box">
+    <h2>Crear / Editar Especialidad</h2>
+    <input id="esp_id" placeholder="ID (solo si vas a editar)" />
+    <input id="esp_name" placeholder="Nombre (ej: Psiquiatra)" />
+    <textarea id="esp_desc" placeholder="Descripción"></textarea>
+    <button class="btn" onclick="saveEsp()">Guardar</button>
+</div>
+
+<div class="box">
+    <h2>Listar Especialidades</h2>
+    <button class="btn" onclick="fetchEspecialidades()">Cargar lista</button>
+    <pre id="esp_list">—</pre>
+</div>
+
+<div class="box">
+    <h2>Borrar Especialidad</h2>
+    <input id="delete_id" placeholder="ID a borrar" />
+    <button class="btn" onclick="deleteEsp()">Eliminar</button>
+</div>
+
+<div class="box">
+    <h2>Respuesta Cruda de la API</h2>
+    <pre id="api_output">—</pre>
+</div>
+
+<script>
+let TOKEN = "";
+
+function show(data) {
+    document.getElementById("api_output").textContent =
+        JSON.stringify(data, null, 2);
+}
+
+async function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const res = await fetch("/api/auth/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    show(data);
+    TOKEN = data.token;
+    alert("Login exitoso");
+}
+
+async function saveEsp() {
+    const id = document.getElementById("esp_id").value.trim();
+    const name = document.getElementById("esp_name").value.trim();
+    const descripcion = document.getElementById("esp_desc").value.trim();
+
+    const payload = { name, descripcion, nombre:name };
+
+    const url = id ? `/api/especialidades/${id}` : "/api/especialidades";
+    const method = id ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+        method,
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer "+TOKEN
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    show(data);
+    alert("Guardado OK");
+}
+
+async function fetchEspecialidades() {
+    const res = await fetch("/api/especialidades");
+    const data = await res.json();
+    document.getElementById("esp_list").textContent =
+        JSON.stringify(data, null, 2);
+}
+
+async function deleteEsp() {
+    const id = document.getElementById("delete_id").value.trim();
+    const res = await fetch(`/api/especialidades/${id}`, {
+        method:"DELETE",
+        headers:{ "Authorization":"Bearer "+TOKEN }
+    });
+    const data = await res.json();
+    show(data);
+}
+</script>
+
+</body>
+</html>

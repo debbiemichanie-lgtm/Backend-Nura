@@ -1,32 +1,42 @@
-import { Router } from 'express';
-import { body } from 'express-validator';
-import validate from '../middlewares/validate.js';
-import { register, login, me } from '../controllers/UsuarioController.js';
-import auth from '../middlewares/auth.js';
+// backend/routes/UsuarioRouter.js
+import { Router } from "express";
+import {
+  register,
+  login,
+  me,
+  getUsers,
+  createClientUser,
+  updateUser,
+  deleteUser,
+} from "../controllers/UsuarioController.js";
 
-const router = Router();
+import {
+  requireAuth,
+  requireAdmin,
+  adminLogin,
+} from "../middlewares/auth.js";
 
-router.post(
-  '/register',
-  [
-    body('nombre').notEmpty().withMessage('nombre requerido'),
-    body('email').isEmail().withMessage('email inválido'),
-    body('password').isLength({ min: 6 }).withMessage('mínimo 6 caracteres')
-  ],
-  validate,
-  register
-);
+const r = Router();
 
-router.post(
-  '/login',
-  [
-    body('email').isEmail().withMessage('email inválido'),
-    body('password').notEmpty().withMessage('password requerido')
-  ],
-  validate,
-  login
-);
+/* ------------------ AUTENTICACIÓN ------------------ */
 
-router.get('/me', auth, me);
+r.post("/register", register);
+r.post("/login", login);
+r.post("/admin/login", adminLogin);
+r.get("/me", requireAuth, me);
 
-export default router;
+/* ------------------ CLIENTES (ADMIN) ------------------ */
+
+// Listar todos los clientes
+r.get("/", requireAuth, requireAdmin, getUsers);
+
+// Crear un cliente
+r.post("/", requireAuth, requireAdmin, createClientUser);
+
+// Editar un cliente
+r.put("/:id", requireAuth, requireAdmin, updateUser);
+
+// Borrar un cliente
+r.delete("/:id", requireAuth, requireAdmin, deleteUser);
+
+export default r;
