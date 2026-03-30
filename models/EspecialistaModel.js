@@ -1,7 +1,26 @@
-// api/models/EspecialistaModel.js
 import mongoose from "mongoose";
 
 const { Schema } = mongoose;
+
+const DayScheduleSchema = new Schema(
+  {
+    active: {
+      type: Boolean,
+      default: false,
+    },
+    from: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    to: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: false }
+);
 
 const EspecialistaSchema = new Schema(
   {
@@ -11,8 +30,6 @@ const EspecialistaSchema = new Schema(
       trim: true,
     },
 
-    // Antes: enum fijo (Psicóloga, Psiquiatra, etc.)
-    // Ahora: string libre, pero validamos por nombre de Especialidad existente desde el frontend / ABM.
     type: {
       type: String,
       required: true,
@@ -31,6 +48,12 @@ const EspecialistaSchema = new Schema(
       required: true,
     },
 
+    sessionDuration: {
+      type: Number,
+      enum: [30, 45, 50, 60, 90],
+      default: 60,
+    },
+
     city: {
       type: String,
       required: true,
@@ -40,6 +63,7 @@ const EspecialistaSchema = new Schema(
     province: {
       type: String,
       trim: true,
+      default: "",
     },
 
     insurance: {
@@ -50,18 +74,51 @@ const EspecialistaSchema = new Schema(
     bio: {
       type: String,
       trim: true,
+      default: "",
     },
 
     contact: {
-      email: { type: String, trim: true },
-      whatsapp: { type: String, trim: true },
-      phone: { type: String, trim: true },
-      website: { type: String, trim: true },
+      email: { type: String, trim: true, default: "" },
+      whatsapp: { type: String, trim: true, default: "" },
+      phone: { type: String, trim: true, default: "" },
+      website: { type: String, trim: true, default: "" },
     },
 
     avatar: {
       type: String,
       trim: true,
+      default: "",
+    },
+
+    horarios: {
+      lunes: {
+        type: DayScheduleSchema,
+        default: () => ({ active: true, from: "09:00", to: "17:00" }),
+      },
+      martes: {
+        type: DayScheduleSchema,
+        default: () => ({ active: true, from: "09:00", to: "17:00" }),
+      },
+      miercoles: {
+        type: DayScheduleSchema,
+        default: () => ({ active: true, from: "09:00", to: "17:00" }),
+      },
+      jueves: {
+        type: DayScheduleSchema,
+        default: () => ({ active: true, from: "09:00", to: "17:00" }),
+      },
+      viernes: {
+        type: DayScheduleSchema,
+        default: () => ({ active: true, from: "09:00", to: "17:00" }),
+      },
+      sabado: {
+        type: DayScheduleSchema,
+        default: () => ({ active: false, from: "", to: "" }),
+      },
+      domingo: {
+        type: DayScheduleSchema,
+        default: () => ({ active: false, from: "", to: "" }),
+      },
     },
   },
   {
