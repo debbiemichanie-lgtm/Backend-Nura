@@ -2,7 +2,11 @@ import {
   crearTurno,
   listarTurnos,
   listarTurnosPorEspecialista,
+  cancelarTurno,
+  editarTurno,
 } from "../services/TurnoService.js";
+
+// ================= CREAR =================
 
 export async function crearTurnoController(req, res, next) {
   try {
@@ -12,6 +16,8 @@ export async function crearTurnoController(req, res, next) {
     next(error);
   }
 }
+
+// ================= LISTAR =================
 
 export async function listarTurnosController(req, res, next) {
   try {
@@ -27,6 +33,30 @@ export async function listarTurnosPorEspecialistaController(req, res, next) {
     const { especialistaId } = req.params;
     const turnos = await listarTurnosPorEspecialista(especialistaId);
     res.json(turnos);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ================= CANCELAR =================
+
+export async function cancelarTurnoController(req, res, next) {
+  try {
+    const { turnoId } = req.params;
+    const turno = await cancelarTurno(turnoId);
+    res.json(turno);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ================= EDITAR =================
+
+export async function editarTurnoController(req, res, next) {
+  try {
+    const { turnoId } = req.params;
+    const turno = await editarTurno(turnoId, req.body);
+    res.json(turno);
   } catch (error) {
     next(error);
   }
