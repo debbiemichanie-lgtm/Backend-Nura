@@ -14,6 +14,7 @@ import errorHandler from './middlewares/errorHandler.js';
 import authRouter from './routes/AuthRouter.js';
 import googleCalendarRouter from './routes/GoogleCalendarRouter.js';
 import turnoRouter from './routes/TurnoRouter.js';
+import googleSyncRouter from './routes/GoogleSyncRouter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ app.use('/api/usuarios', usuarioRouter);
 app.use('/api/especialistas', especialistaRouter);
 app.use('/api/especialidades', especialidadRouter);
 app.use('/api/google', googleCalendarRouter);
+app.use('/api/google-sync', googleSyncRouter);
 app.use('/api/turnos', turnoRouter);
 app.use('/', indexRouter);
 
