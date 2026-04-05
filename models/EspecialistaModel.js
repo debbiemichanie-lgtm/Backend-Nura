@@ -120,6 +120,21 @@ const EspecialistaSchema = new Schema(
         default: () => ({ active: false, from: "", to: "" }),
       },
     },
+
+googleCalendar: {
+  connected: { type: Boolean, default: false },
+  calendarId: { type: String, default: "primary" },
+
+  accessToken: { type: String, default: null },
+  refreshToken: { type: String, default: null },
+  tokenExpiryDate: { type: Date, default: null },
+
+  syncToken: { type: String, default: null },
+
+  watchChannelId: { type: String, default: null },
+  watchResourceId: { type: String, default: null },
+  watchExpiration: { type: Date, default: null },
+},
   },
   {
     timestamps: true,
