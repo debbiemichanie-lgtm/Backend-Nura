@@ -15,7 +15,7 @@ import authRouter from './routes/AuthRouter.js';
 
 import googleCalendarRouter from "./routes/GoogleCalendarRouter.js";
 
-app.use("/api/google", googleCalendarRouter);
+// app.use("/api/google", googleCalendarRouter);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
