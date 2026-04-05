@@ -13,6 +13,7 @@ import especialidadRouter from './routes/EspecialidadRouter.js';
 import errorHandler from './middlewares/errorHandler.js';
 import authRouter from './routes/AuthRouter.js';
 import googleCalendarRouter from './routes/GoogleCalendarRouter.js';
+import turnoRouter from './routes/TurnoRouter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,7 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 app.get('/health', (_req, res) =>
   res.json({
     ok: true,
@@ -49,6 +51,7 @@ app.use('/api/usuarios', usuarioRouter);
 app.use('/api/especialistas', especialistaRouter);
 app.use('/api/especialidades', especialidadRouter);
 app.use('/api/google', googleCalendarRouter);
+app.use('/api/turnos', turnoRouter);
 app.use('/', indexRouter);
 
 app.use(errorHandler);
