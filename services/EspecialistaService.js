@@ -1,10 +1,11 @@
 import Especialista from "../models/EspecialistaModel.js";
+import Usuario from "../models/UsuarioModel.js";
 
 // ================= HELPERS =================
 
 function ensureHorarios(data) {
   if (!data.horarios || typeof data.horarios !== "object") {
-    return data; // deja que el modelo aplique defaults
+    return data;
   }
 
   const base = {
@@ -51,27 +52,57 @@ export async function obtenerEspecialistaPorId(id) {
 export async function crearEspecialista(data) {
   let cleanData = { ...data };
 
-  // asegurar duración
   if (!cleanData.sessionDuration) {
     cleanData.sessionDuration = 60;
   }
 
-  // asegurar horarios
   cleanData = ensureHorarios(cleanData);
 
-  const doc = new Especialista(cleanData);
+  let userId = null;
+
+  const accessEmail = cleanData.access?.email?.trim()?.toLowerCase();
+  const accessPassword = cleanData.access?.password?.trim();
+
+  if (accessEmail || accessPassword) {
+    if (!accessEmail || !accessPassword) {
+      throw new Error("Para crear acceso profesional tenés que enviar email y contraseña.");
+    }
+
+    const existingUser = await Usuario.findOne({ email: accessEmail });
+    if (existingUser) {
+      throw new Error("Ya existe un usuario con ese email de acceso.");
+    }
+
+    const profesionalUser = await Usuario.create({
+      nombre: cleanData.name,
+      email: accessEmail,
+      password: accessPassword,
+      rol: "professional",
+    });
+
+    userId = profesionalUser._id;
+
+    cleanData.contact = {
+      ...cleanData.contact,
+      email: accessEmail,
+    };
+  }
+
+  const doc = new Especialista({
+    ...cleanData,
+    userId,
+  });
+
   return doc.save();
 }
 
 export async function actualizarEspecialista(id, data) {
   let cleanData = { ...data };
 
-  // asegurar duración
   if (!cleanData.sessionDuration) {
     cleanData.sessionDuration = 60;
   }
 
-  // asegurar horarios
   cleanData = ensureHorarios(cleanData);
 
   return Especialista.findByIdAndUpdate(id, cleanData, {

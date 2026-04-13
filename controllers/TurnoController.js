@@ -4,6 +4,7 @@ import {
   listarTurnosPorEspecialista,
   cancelarTurno,
   editarTurno,
+  obtenerDisponibilidad,
 } from "../services/TurnoService.js";
 
 // ================= CREAR =================
@@ -11,7 +12,7 @@ import {
 export async function crearTurnoController(req, res, next) {
   try {
     const turno = await crearTurno(req.body);
-    res.status(201).json(turno);
+    res.status(201).json({ ok: true, data: turno });
   } catch (error) {
     next(error);
   }
@@ -22,7 +23,7 @@ export async function crearTurnoController(req, res, next) {
 export async function listarTurnosController(req, res, next) {
   try {
     const turnos = await listarTurnos();
-    res.json(turnos);
+    res.json({ ok: true, data: turnos });
   } catch (error) {
     next(error);
   }
@@ -32,7 +33,19 @@ export async function listarTurnosPorEspecialistaController(req, res, next) {
   try {
     const { especialistaId } = req.params;
     const turnos = await listarTurnosPorEspecialista(especialistaId);
-    res.json(turnos);
+    res.json({ ok: true, data: turnos });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function obtenerDisponibilidadController(req, res, next) {
+  try {
+    const { especialistaId } = req.params;
+    const { from, to } = req.query;
+
+    const result = await obtenerDisponibilidad(especialistaId, from, to);
+    res.json({ ok: true, data: result });
   } catch (error) {
     next(error);
   }
@@ -44,7 +57,7 @@ export async function cancelarTurnoController(req, res, next) {
   try {
     const { turnoId } = req.params;
     const turno = await cancelarTurno(turnoId);
-    res.json(turno);
+    res.json({ ok: true, data: turno });
   } catch (error) {
     next(error);
   }
@@ -56,7 +69,7 @@ export async function editarTurnoController(req, res, next) {
   try {
     const { turnoId } = req.params;
     const turno = await editarTurno(turnoId, req.body);
-    res.json(turno);
+    res.json({ ok: true, data: turno });
   } catch (error) {
     next(error);
   }

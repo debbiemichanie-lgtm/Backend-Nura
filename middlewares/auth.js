@@ -39,10 +39,17 @@ export function requireAuth(req, res, next) {
   }
 }
 
-// Autorización: solo admin y cliente
+// Autorización
 export function requireAdmin(req, res, next) {
-  if (!req.user || !["admin", "client"].includes(req.user.rol)) {
-    return res.status(403).json({ ok: false, message: "Solo admin o cliente autorizado" });
+  if (!req.user || req.user.rol !== "admin") {
+    return res.status(403).json({ ok: false, message: "Solo admin autorizado" });
+  }
+  next();
+}
+
+export function requireProfessionalOrAdmin(req, res, next) {
+  if (!req.user || !["admin", "professional"].includes(req.user.rol)) {
+    return res.status(403).json({ ok: false, message: "Sin permisos" });
   }
   next();
 }

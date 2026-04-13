@@ -7,7 +7,7 @@ const UsuarioSchema = new mongoose.Schema(
     email:   { type: String, required: true, unique: true, lowercase: true, trim: true },
     password:{ type: String, required: true, minlength: 6 },
     // ahora con 'client'
-    rol:     { type: String, enum: ['admin', 'client', 'user'], default: 'user' }
+    rol: { type: String, enum: ['admin', 'client', 'professional', 'user'], default: 'user' }
   },
   { timestamps: true }
 );

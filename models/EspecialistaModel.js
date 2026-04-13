@@ -18,6 +18,7 @@ const DayScheduleSchema = new Schema(
       trim: true,
       default: "",
     },
+   
   },
   { _id: false }
 );
@@ -120,6 +121,13 @@ const EspecialistaSchema = new Schema(
         default: () => ({ active: false, from: "", to: "" }),
       },
     },
+    
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Usuario",
+      default: null,
+    },
+
 
 googleCalendar: {
   connected: { type: Boolean, default: false },
