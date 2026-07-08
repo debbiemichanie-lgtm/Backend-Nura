@@ -2,6 +2,7 @@ import {
   crearTurno,
   listarTurnos,
   listarTurnosPorEspecialista,
+  listarTurnosPorPaciente,
   cancelarTurno,
   editarTurno,
   obtenerDisponibilidad,
@@ -23,6 +24,16 @@ export async function crearTurnoController(req, res, next) {
 export async function listarTurnosController(req, res, next) {
   try {
     const turnos = await listarTurnos();
+    res.json({ ok: true, data: turnos });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listarTurnosPorPacienteController(req, res, next) {
+  try {
+    const { email } = req.query;
+    const turnos = await listarTurnosPorPaciente(email);
     res.json({ ok: true, data: turnos });
   } catch (error) {
     next(error);

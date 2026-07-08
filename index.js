@@ -16,6 +16,7 @@ import googleCalendarRouter from './routes/GoogleCalendarRouter.js';
 import turnoRouter from './routes/TurnoRouter.js';
 import googleSyncRouter from './routes/GoogleSyncRouter.js';
 import agendaRouter from './routes/AgendaRouter.js';
+import profesionalRouter from "./routes/ProfesionalRouter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +58,7 @@ app.use('/api/google-sync', googleSyncRouter);
 app.use('/api/turnos', turnoRouter);
 app.use('/api/agenda', agendaRouter);
 app.use('/', indexRouter);
+app.use("/api/profesional", profesionalRouter);
 
 app.use(errorHandler);
 

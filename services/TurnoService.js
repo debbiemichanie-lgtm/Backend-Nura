@@ -48,6 +48,21 @@ async function validarSolapamientoTurnos(especialistaId, start, end, excludeTurn
   }
 }
 
+export async function listarTurnosPorPaciente(pacienteEmail) {
+  const email = String(pacienteEmail || "").trim().toLowerCase();
+
+  if (!email) {
+    throw new Error("Email de paciente requerido");
+  }
+
+  return Turno.find({
+    pacienteEmail: email,
+    status: "confirmed",
+  })
+    .populate("especialistaId", "name type modality")
+    .sort({ start: 1 });
+}
+
 async function validarSolapamientoBloqueos(especialistaId, start, end) {
   const overlappingBloqueo = await BloqueoAgenda.findOne({
     especialistaId,
